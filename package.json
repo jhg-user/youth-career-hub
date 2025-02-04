@@ -4,7 +4,9 @@
   "description": "20대 청년들을 대상으로 취업 정보를 제공하고, 커뮤니티를 형성하여 취업 준비에 도움을 주는 플랫폼 개발",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "repository": {
     "type": "git",
@@ -18,5 +20,8 @@
   "homepage": "https://github.com/jhg-user/youth-career-hub#readme",
   "dependencies": {
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
   }
 }
