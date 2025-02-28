@@ -1,9 +1,12 @@
+// board.js - 게시글 API 
 const express = require('express');
 const router = express.Router();
 const db = require('../db'); // MySQL 연결 파일
 
-// ✅ 게시글 작성 API (POST /board/create)
-router.post('/create', (req, res) => {
+// RESTful API에 맞게 POST, GET, PUT, DELETE로 구분하도록 수정
+// ✅ 게시글 작성 API (POST /board)
+router.post('/', (req, res) => {
+
     const { title, content, username, category_id } = req.body;
   
     if (!title || !content || !username || !category_id) {
@@ -25,8 +28,8 @@ router.post('/create', (req, res) => {
 });
 
 
-// ✅ 게시글 목록 조회 API (GET /board/list)
-router.get('/list', (req, res) => {
+// ✅ 게시글 목록 조회 API (GET /board)
+router.get('/', (req, res) => {
     let page = parseInt(req.query.page) || 1;  // 현재 페이지 (기본값: 1)
     let limit = parseInt(req.query.limit) || 10;  // 한 페이지에 표시할 게시글 개수 (기본값: 10)
     let offset = (page - 1) * limit;  // OFFSET 계산
@@ -38,7 +41,8 @@ router.get('/list', (req, res) => {
           board.content,
           board.views,
           board.created_at,
-          categories.name AS category,
+          categories.name AS category, -- 수정
+          -- categories.name AS category_name, -- 🔥 카테고리명 가져오기
           users.nickname,
           users.profile_image,
           COALESCE(like_count_table.like_count, 0) AS like_count,
@@ -136,8 +140,60 @@ router.get('/:id', (req, res) => {
     });
 });
 
+// ✅ 게시글 수정 API (작성자는 변경되지 않음)
+router.put('/:id', (req, res) => {
+  const postId = req.params.id;
+  const { title, content, category_id } = req.body;
+
+  console.log(`📢 게시글 수정 요청: ID=${postId}`);
+
+  if (!title || !content || !category_id) {
+      return res.status(400).json({ message: '제목, 내용, 카테고리를 입력해주세요.' });
+  }
+
+  // 🔥 원작성자를 유지하면서 수정하기 위해 기존 작성자 확인
+  const getOriginalPostSql = `SELECT username FROM board WHERE id = ?`;
+  db.query(getOriginalPostSql, [postId], (err, result) => {
+      if (err) {
+          console.error("❌ 게시글 조회 오류:", err);
+          return res.status(500).json({ message: '게시글 조회 실패' });
+      }
+      if (result.length === 0) {
+          return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      }
+
+      const originalUsername = result[0].username; // ✅ 원래 작성자 유지
+
+      // ✅ 게시글 업데이트 (작성자는 변경하지 않음)
+      const updateSql = `UPDATE board SET title = ?, content = ?, category_id = ? WHERE id = ?`;
+      db.query(updateSql, [title, content, category_id, postId], (err) => {
+          if (err) {
+              console.error("❌ 게시글 수정 오류:", err);
+              return res.status(500).json({ message: '게시글 수정 실패' });
+          }
+          res.json({ message: '✅ 게시글이 수정되었습니다!', originalUsername }); // ✅ 원작성자 유지됨
+      });
+  });
+});
+
+
+// ✅ 게시글 삭제 (DELETE /board/:id)
+router.delete('/:id', (req, res) => {
+  const postId = req.params.id;
+  const { username } = req.body;
+
+  const checkAuthorSql = `SELECT * FROM board WHERE id = ? AND username = ?`;
+  db.query(checkAuthorSql, [postId, username], (err, result) => {
+      if (err) return res.status(500).json({ message: '작성자 확인 실패' });
+      if (result.length === 0) return res.status(403).json({ message: '삭제 권한이 없습니다.' });
+
+      const deleteSql = `DELETE FROM board WHERE id = ?`;
+      db.query(deleteSql, [postId], (err) => {
+          if (err) return res.status(500).json({ message: '게시글 삭제 실패' });
+          res.json({ message: '✅ 게시글이 삭제되었습니다!' });
+      });
+  });
+});
+
 module.exports = router;
 
-
-
-  
