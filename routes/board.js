@@ -6,6 +6,7 @@ const db = require('../db'); // MySQL 연결 파일
 // RESTful API에 맞게 POST, GET, PUT, DELETE로 구분하도록 수정
 // ✅ 게시글 작성 API (POST /board)
 router.post('/', (req, res) => {
+
     const { title, content, username, category_id } = req.body;
   
     if (!title || !content || !username || !category_id) {

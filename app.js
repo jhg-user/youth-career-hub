@@ -3,8 +3,8 @@ const express = require('express');
 
 const bodyParser = require('body-parser');
 const boardRoutes = require('./routes/board'); // 게시판 API 라우트
-// const boardRoutes = require('./routes/board2'); // 게시판 API 라우트
 const categoryRoutes = require('./routes/categories'); // categories API 라우트
+
 
 require('dotenv').config();
 
