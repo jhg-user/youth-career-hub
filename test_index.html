@@ -1,0 +1,313 @@
+<!--html과 javascript만으로 게시판 API 테스트하는 코드-->
+<!-- <!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시판 테스트</title>
+    <script>
+        const API_BASE = "http://localhost:3000/board"; // API 주소
+        const CATEGORY_API = "http://localhost:3000/categories"; // 카테고리 API 주소
+
+        // 📌 1. 게시글 목록 조회 (최신 10개)
+        async function fetchPosts() {
+            const response = await fetch(`${API_BASE}/list?page=1&limit=10`);
+            const data = await response.json();
+            const postList = document.getElementById("postList");
+            postList.innerHTML = ""; // 기존 목록 초기화
+            data.posts.forEach(post => {
+                const item = document.createElement("li");
+                item.innerHTML = `<a href="#" onclick="fetchPost(${post.id})">${post.title}</a> (조회수: ${post.views}, 카테고리: ${post.category})`;
+                postList.appendChild(item);
+            });
+        }
+
+        // 📌 2. 특정 게시글 조회
+        async function fetchPost(id) {
+            const response = await fetch(`${API_BASE}/${id}`);
+            const post = await response.json();
+            document.getElementById("postDetail").innerHTML = `
+                <h2>${post.title}</h2>
+                <p>${post.content}</p>
+                <p>작성자: ${post.nickname} | 조회수: ${post.views} | 카테고리: ${post.category}</p>
+            `;
+        }
+
+        // 📌 3. 게시판 카테고리 목록 불러오기
+        async function fetchCategories() {
+            const response = await fetch(CATEGORY_API);
+            const categories = await response.json();
+            const categorySelect = document.getElementById("category");
+
+            categories.forEach(category => {
+                const option = document.createElement("option");
+                option.value = category.id; // 🔥 숫자로 저장
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        // 📌 4. 새 게시글 작성 (현재는 작성자를 직접 입력해야 함)
+        async function createPost() {
+            const title = document.getElementById("title").value.trim();
+            const content = document.getElementById("content").value.trim();
+            const username = document.getElementById("username").value.trim(); // 🔥 작성자 입력 추가
+            const category_id = parseInt(document.getElementById("category").value, 10); // 숫자로 변환
+
+            if (!title || !content || !username) {
+                alert("제목, 내용, 작성자를 입력하세요.");
+                return;
+            }
+
+            const requestData = { title, content, username, category_id };
+
+            console.log("📌 생성 요청 데이터:", requestData); // 🔥 디버깅용 콘솔 출력
+
+            const response = await fetch(`${API_BASE}/create`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert("게시글이 등록되었습니다!");
+                fetchPosts(); // 목록 새로고침
+            } else {
+                alert("게시글 등록 실패: " + result.message);
+            }
+        }
+
+        // 📌 페이지 로드 시 게시글 & 카테고리 불러오기
+        window.onload = () => {
+            fetchPosts();
+            fetchCategories();
+        };
+    </script>
+</head>
+<body>
+    <h1>📌 게시판 테스트</h1>
+
+    <h2>✅ 게시글 목록</h2>
+    <ul id="postList"></ul>
+
+    <h2>✅ 새 게시글 작성</h2>
+    <input type="text" id="title" placeholder="제목 입력"><br>
+    <textarea id="content" placeholder="내용 입력"></textarea><br>
+    <input type="text" id="username" placeholder="작성자 입력"> **--><!--🔥현재는 수동 입력 -->
+    <!--**
+    <select id="category"></select> **--> <!-- 🔥 카테고리 선택 -->
+    <!--**
+    <button onclick="createPost()">📢 게시글 등록</button>
+
+    <h2>✅ 게시글 상세 조회</h2>
+    <div id="postDetail">게시글을 선택하세요.</div>
+</body>
+</html> **-->
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시판 테스트</title>
+    <script>
+        const API_BASE = "http://localhost:3000/board"; // API 주소
+        const CATEGORY_API = "http://localhost:3000/categories"; // 카테고리 API 주소
+
+        let categories = []; // 🔥 카테고리 목록 저장
+        let currentPage = 1; // 🔥 현재 페이지 (기본값: 1)
+
+        // 📌 1. 게시글 목록 조회 (페이지네이션 적용)
+        async function fetchPosts(page = 1) {
+            const response = await fetch(`${API_BASE}?page=${page}&limit=10`);
+            const data = await response.json();
+
+            const postList = document.getElementById("postList");
+            postList.innerHTML = ""; // 기존 목록 초기화
+
+            data.posts.forEach(post => {
+                const item = document.createElement("li");
+                item.innerHTML = `<a href="#" onclick="fetchPost(${post.id})">${post.title}</a> (조회수: ${post.views}, 카테고리: ${post.category})`;
+                // item.innerHTML = `<a href="#" onclick="fetchPost(${post.id})">${post.title}</a> (조회수: ${post.views}, 카테고리: ${post.category_name})`; // 🔥 변경됨!
+                postList.appendChild(item);
+            });
+
+            // 페이지네이션 버튼 업데이트
+            document.getElementById("currentPage").innerText = `페이지 ${page} / ${data.totalPages}`;
+            currentPage = page;
+
+            // "이전" 버튼 활성화/비활성화
+            document.getElementById("prevPage").disabled = page === 1;
+            document.getElementById("nextPage").disabled = page >= data.totalPages;
+        }
+
+        // 📌 2. 특정 게시글 조회
+        async function fetchPost(id) {
+            const response = await fetch(`${API_BASE}/${id}`);
+            const post = await response.json();
+            document.getElementById("postDetail").innerHTML = `
+                <h2>${post.title}</h2>
+                <p>${post.content}</p>
+                <p>작성자: ${post.nickname} | 조회수: ${post.views} | 카테고리: ${post.category}</p>
+            `;
+        }
+
+        // 📌 3. 게시판 카테고리 목록 불러오기
+        async function fetchCategories() {
+            console.log("📢 fetchCategories() 실행됨"); // 🔥 실행 확인
+
+            try {
+                const response = await fetch("http://localhost:3000/categories");
+                if (!response.ok) {
+                    throw new Error("❌ API 응답 오류: " + response.status);
+                }
+                const categories = await response.json();
+                console.log("📢 받아온 카테고리 데이터:", categories); // 🔥 API 응답 확인
+
+                const categorySelect = document.getElementById("category");
+                if (!categorySelect) {
+                    console.error("❌ <select id='category'> 태그를 찾을 수 없음!");
+                    return;
+                }
+                categorySelect.innerHTML = ""; // 기존 옵션 초기화
+
+                if (categories.length === 0) {
+                    alert("⚠ 카테고리가 존재하지 않습니다. 먼저 카테고리를 생성해주세요.");
+                    return;
+                }
+
+                categories.forEach(category => {
+                    const option = document.createElement("option");
+                    option.value = category.id; // 🔥 숫자로 저장
+                    option.textContent = category.name;
+                    categorySelect.appendChild(option);
+                });
+
+                // 🔥 기본 선택값을 첫 번째 카테고리로 설정
+                categorySelect.value = categories[0].id;
+                console.log("✅ 카테고리 드롭다운이 정상적으로 채워짐");
+            } catch (error) {
+                console.error("❌ fetchCategories() 오류:", error);
+            }
+        }
+
+        // 📌 4. 새 게시글 작성
+        async function createPost() {
+            const title = document.getElementById("title").value.trim();
+            const content = document.getElementById("content").value.trim();
+            const username = document.getElementById("username").value.trim();
+            const category_id = parseInt(document.getElementById("category").value, 10); // 🔥 선택한 카테고리 ID 가져오기
+
+            if (!title || !content || !username) {
+                alert("제목, 내용, 작성자를 입력하세요.");
+                return;
+            }
+
+            if (!category_id || isNaN(category_id)) {
+                alert("⚠ 유효한 카테고리를 선택하세요.");
+                return;
+            }
+
+            const requestData = { title, content, username, category_id };
+
+            console.log("📌 생성 요청 데이터:", requestData); // 🔥 디버깅용 콘솔 출력
+
+            const response = await fetch(`${API_BASE}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert("✅ 게시글이 등록되었습니다!");
+                fetchPosts(currentPage); // 🔥 현재 페이지 유지하며 목록 새로고침
+            } else {
+                alert("게시글 등록 실패: " + result.message);
+            }
+        }
+
+        // ✅ 게시글 수정 요청 (작성자 변경 X)
+        async function updatePost() {
+            const postId = document.getElementById("postIdUpdate").value;
+            const title = document.getElementById("titleUpdate").value;
+            const content = document.getElementById("contentUpdate").value;
+            const category_id = document.getElementById("categoryUpdate").value;
+
+            if (!postId || !title || !content || !category_id) {
+                alert("⚠ 모든 값을 입력해주세요.");
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/board/${postId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, content, category_id }) // 🔥 username은 요청에서 제거!
+            });
+
+            const result = await response.json();
+            alert(result.message);
+        }
+
+
+        // ✅ 게시글 삭제 요청 (DELETE /board/:id)
+        async function deletePost() {
+            const postId = document.getElementById("postIdDelete").value;
+            const username = document.getElementById("usernameDelete").value;
+
+            if (!postId || !username) {
+                alert("⚠ 게시글 ID와 작성자를 입력하세요.");
+                return;
+            }
+
+            const response = await fetch(`${API_BASE}/${postId}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username })
+            });
+
+            const result = await response.json();
+            alert(result.message);
+        }
+
+        // 📌 페이지 로드 시 게시글 & 카테고리 불러오기
+        window.onload = () => {
+            fetchPosts();
+            fetchCategories();
+        };
+    </script>
+</head>
+<body>
+    <h1>📌 게시판 테스트</h1>
+
+    <h2>✅ 게시글 목록</h2>
+    <ul id="postList"></ul>
+
+    <button id="prevPage" onclick="fetchPosts(currentPage - 1)">⬅ 이전</button>
+    <span id="currentPage">페이지 1</span>
+    <button id="nextPage" onclick="fetchPosts(currentPage + 1)">다음 ➡</button>
+
+    <h2>✅ 새 게시글 작성</h2>
+    <input type="text" id="title" placeholder="제목 입력"><br>
+    <textarea id="content" placeholder="내용 입력"></textarea><br>
+    <input type="text" id="username" placeholder="작성자 입력">
+    <select id="category"></select>
+    <button onclick="createPost()">📢 게시글 등록</button>
+
+    <h2>✅ 게시글 상세 조회</h2>
+    <div id="postDetail">게시글을 선택하세요.</div>
+
+    <h2>✅ 게시글 수정</h2>
+    <input type="number" id="postIdUpdate" placeholder="게시글 ID">
+    <input type="text" id="titleUpdate" placeholder="새 제목">
+    <textarea id="contentUpdate" placeholder="새 내용"></textarea>
+    <input type="number" id="categoryUpdate" placeholder="카테고리 ID">
+    <button onclick="updatePost()">✏ 수정</button>
+
+    <h2>🗑 게시글 삭제</h2>
+    <input type="number" id="postIdDelete" placeholder="게시글 ID">
+    <input type="text" id="usernameDelete" placeholder="작성자">
+    <button onclick="deletePost()">🗑 삭제</button>
+</body>
+</html>

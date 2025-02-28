@@ -3,6 +3,8 @@ const express = require('express');
 
 const bodyParser = require('body-parser');
 const boardRoutes = require('./routes/board'); // 게시판 API 라우트
+// const boardRoutes = require('./routes/board2'); // 게시판 API 라우트
+const categoryRoutes = require('./routes/categories'); // categories API 라우트
 
 require('dotenv').config();
 
@@ -19,13 +21,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Home 페이지 라우트
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-//   res.sendFile(__dirname + '/views/index.html');
+  // res.sendFile(__dirname + '/index.html');
+  res.sendFile(__dirname + '/test_index.html'); //게시판 API 테스트
 });
 
 // Middleware 설정
 app.use(bodyParser.json());
 app.use('/board', boardRoutes);
+app.use('/categories', categoryRoutes);
 
 
 app.listen(PORT, () => {
